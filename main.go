@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv"
 	"io"
 	"log"
 	"os"
@@ -10,15 +12,20 @@ import (
 	"ydxstream_downloader/utils"
 )
 
-var (
-	fileName   = os.Getenv("META_FILENAME")
-	urlToParse = os.Getenv("STREAM_URL_TO_PARSE")
-)
-
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	var (
+		fileName   = os.Getenv("MERGEDFILE_NAME")
+		urlToParse = os.Getenv("STREAM_URL")
+	)
+
 	// LOGGER SETUP
-	logDir := "../logs"
-	err := os.MkdirAll(logDir, os.ModePerm)
+	logDir := "./logs"
+	err = os.MkdirAll(logDir, os.ModePerm)
 	if err != nil {
 		fmt.Println("Ошибка при создании папки для логов:", err)
 		return
@@ -27,7 +34,7 @@ func main() {
 	currentTime := time.Now().Format("2006-01-02_15-04-05")
 	logFileName := fmt.Sprintf("%s/logfile_%s.log", logDir, currentTime)
 
-	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("Ошибка при открытии файла для записи логов:", err)
 		return
@@ -44,6 +51,7 @@ func main() {
 
 	log.SetOutput(multiWriter)
 
+	log.Println("Starting download, output file:", fileName+".ts")
 	// MAIN LOGIC
 
 	parsedUrl := utils.ParseURL(urlToParse)
@@ -72,7 +80,7 @@ func main() {
 	err = utils.DownloadFromStream(
 		queryParams,
 		headers,
-		70,
+		200,
 		20,
 		parsedUrl.UserHash,
 		parsedUrl.PlaylistHash,
