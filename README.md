@@ -1,1 +1,1 @@
-# ydex_stream_downloader
+Software for downloading videos from y.disk
