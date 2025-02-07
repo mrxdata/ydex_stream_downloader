@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 	"ydxstream_downloader/utils"
@@ -76,17 +77,28 @@ func main() {
 		parsedUrl.Vpuid,
 		time.Now().Unix()-1,
 	)
-
-	err = utils.DownloadFromStream(
+	err = utils.ParallelDownloadFromStream(
 		queryParams,
 		headers,
-		200,
-		20,
+		500,
+		10,
+		runtime.NumCPU(),
 		parsedUrl.UserHash,
 		parsedUrl.PlaylistHash,
 		parsedUrl.VideoHash,
 		strings.Join([]string{"output", fileName + ".ts"}, "/"),
 	)
+
+	//err = utils.DownloadFromStream(
+	//	queryParams,
+	//	headers,
+	//	200,
+	//	20,
+	//	parsedUrl.UserHash,
+	//	parsedUrl.PlaylistHash,
+	//	parsedUrl.VideoHash,
+	//	strings.Join([]string{"output", fileName + ".ts"}, "/"),
+	//)
 	if err != nil {
 		log.Println("Error:", err)
 	} else {
