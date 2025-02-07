@@ -28,7 +28,8 @@ func ParallelDownloadFromStream(
 	intervalMs, maxTimeout, numWorkers int,
 	userhash, playlisthash, videohash, outputPath string,
 ) error {
-	// Открываем (или создаем) файл для дозаписи
+	start := time.Now()
+
 	outputFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return fmt.Errorf("failed to open output file: %w", err)
@@ -45,13 +46,15 @@ func ParallelDownloadFromStream(
 
 	workerChans := make([]chan DownloadResult, numWorkers)
 	for i := 0; i < numWorkers; i++ {
-		workerChans[i] = make(chan DownloadResult, 10) // небольшой буфер
+		workerChans[i] = make(chan DownloadResult, 20)
 	}
 
 	var wg sync.WaitGroup
 
 	downloadChunk := func(url string) ([]byte, error) {
+
 		var resp *http.Response
+
 		for attempt := 1; attempt <= 3; attempt++ {
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
@@ -81,6 +84,7 @@ func ParallelDownloadFromStream(
 				time.Sleep(time.Second)
 				continue
 			}
+
 			if resp.StatusCode != http.StatusOK {
 				log.Printf("Attempt %d: HTTP error: %s\n", attempt, resp.Status)
 				err := resp.Body.Close()
@@ -95,10 +99,7 @@ func ParallelDownloadFromStream(
 			_, err = io.Copy(buf, resp.Body)
 			err = resp.Body.Close()
 			if err != nil {
-				return nil, fmt.Errorf("failed to close response body: %w", err)
-			}
-			if err != nil {
-				log.Printf("Attempt %d: failed to read body: %v\n", attempt, err)
+				log.Printf("Attempt %d: failed to close body: %v\n", attempt, err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -168,6 +169,7 @@ func ParallelDownloadFromStream(
 		log.Printf("Wrote chunk %d to output file.\n", expectedIndex)
 		expectedIndex++
 	}
-
+	end := time.Now()
+	log.Printf("Time elapsed: %v\n", end.Sub(start))
 	return nil
 }
